@@ -1,7 +1,7 @@
 const joi = require("joi");
 
 const postValidator = joi.object({
-  name: joi.string().alphanum().min(1).max(40).required(),
+  name: joi.string().min(1).max(40).required(),
   email: joi.string().email({ minDomainSegments: 2, tlds: false }).required(),
   phone: joi.string().min(9).required(),
   favorite: joi.bool(),
