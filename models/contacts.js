@@ -2,20 +2,12 @@ const fs = require("fs").promises;
 const path = require("path");
 
 const contactsPath = path.resolve("./models/contacts.json");
-
-const saveContacts = async (contacts) => {
-  try {
-    const convertedToJSON = JSON.stringify(contacts);
-    await fs.writeFile(contactsPath, convertedToJSON);
-  } catch (err) {
-    console.log(err);
-  }
-};
+const contact = require("./../service/schemas/task");
 
 const listContacts = async () => {
   try {
-    const contacts = await fs.readFile(contactsPath);
-    return JSON.parse(contacts);
+    const contacts = await contact.find();
+    return contacts;
   } catch (err) {
     console.log(err);
   }
@@ -23,9 +15,8 @@ const listContacts = async () => {
 
 const getContactById = async (contactId) => {
   try {
-    const contacts = await listContacts();
-    const contact = contacts.find((contact) => contact.id === contactId);
-    return contact;
+    const contacts = await contact.findOne({ id: contactId });
+    return contacts;
   } catch (err) {
     console.log(err);
   }
@@ -33,40 +24,45 @@ const getContactById = async (contactId) => {
 
 const removeContact = async (contactId) => {
   try {
-    const contacts = await listContacts();
-    const contactsAfterRemove = contacts.filter(
-      (contact) => contact.id !== contactId
-    );
-    await saveContacts(contactsAfterRemove);
+    const contacts = await contact.deleteOne({ id: contactId });
+    console.log(contacts);
   } catch (err) {
     console.log(err);
   }
 };
 
-const addContact = async (name, email, phone) => {
+const addContact = async ({ name, email, phone, favorite }) => {
   try {
-    const contacts = await listContacts();
-    const contact = { id: Date.now().toString(), name, email, phone };
-    contacts.push(contact);
-    await saveContacts(contacts);
+    const newContact = await contact.create({
+      id: Date.now().toString(),
+      name,
+      email,
+      phone,
+      favorite,
+    });
+    console.log(favorite);
   } catch (err) {
     console.log(err);
   }
 };
 
-const updateContact = async (contactId, body) => {
+const updateContact = async (contactId, { name, email, phone }) => {
   try {
-    const contacts = await listContacts();
-    const updatedContactIndex = await contacts.findIndex(
-      (contact) => contact.id === contactId
+    const updatedContact = await contact.updateOne(
+      { id: contactId },
+      { name, email, phone }
     );
-    const updatingContact = contacts[updatedContactIndex];
-    if (body.name) updatingContact.name = body.name;
-    if (body.email) updatingContact.email = body.email;
-    if (body.phone) updatingContact.phone = body.phone;
+  } catch (err) {
+    console.log(err);
+  }
+};
 
-    await saveContacts(contacts);
-    return updatingContact;
+const updateStatusContact = async (contactId, { favorite }) => {
+  try {
+    const updatedContact = await contact.updateOne(
+      { id: contactId },
+      { favorite }
+    );
   } catch (err) {
     console.log(err);
   }
@@ -78,4 +74,5 @@ module.exports = {
   removeContact,
   addContact,
   updateContact,
+  updateStatusContact,
 };
