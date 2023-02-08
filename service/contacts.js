@@ -1,8 +1,4 @@
-const fs = require("fs").promises;
-const path = require("path");
-
-const contactsPath = path.resolve("./models/contacts.json");
-const contact = require("./../service/schemas/task");
+const { contact } = require("./../service/schemas/contact");
 
 const listContacts = async () => {
   try {
