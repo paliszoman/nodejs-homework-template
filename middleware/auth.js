@@ -1,14 +1,13 @@
 const passport = require("passport");
 const passportJWT = require("passport-jwt");
 const service = require("../service/users.js");
-const config = require("./../config");
-const secret = config.jwtSecret;
+const { JWT_SECRET, URI_DB, PORT } = require("./../config");
 
 const extractJWT = passportJWT.ExtractJwt;
 const Strategy = passportJWT.Strategy;
 
 const params = {
-  secretOrKey: secret,
+  secretOrKey: JWT_SECRET,
   jwtFromRequest: extractJWT.fromAuthHeaderAsBearerToken(),
 };
 
@@ -16,10 +15,7 @@ passport.use(
   new Strategy(params, async (payload, done) => {
     try {
       const user = await service.getUserById(payload.id);
-      if (!user) return done(new Error("User not found"));
-      if (user) {
-        return done(null, user);
-      }
+      return user ? done(null, user) : done(new Error("User not found"));
     } catch (err) {
       return done(err);
     }
