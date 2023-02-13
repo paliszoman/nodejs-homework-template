@@ -18,4 +18,8 @@ router.get("/", user.getAll);
 
 router.patch("/avatars", auth, avatar.newFile.single("avatar"), user.newAvatar);
 
+router.get("/verify/:verificationToken", user.verificationLink);
+
+router.post("/verify", isValid(userValidator), user.repeatVerification);
+
 module.exports = router;
