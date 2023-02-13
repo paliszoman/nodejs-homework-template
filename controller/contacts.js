@@ -14,12 +14,9 @@ const getContacts = async (req, res, next) => {
 const getContactById = async (req, res, next) => {
   const { contactId } = req.params;
   const contact = await service.getContactById(contactId);
-  if (contact) {
-    return res.status(200).send(contact);
-  }
-  if (!contact) {
-    return res.status(404).json({ message: "Not found" });
-  }
+  return contact
+    ? res.status(200).send(contact)
+    : res.status(404).json({ message: "Not found" });
 };
 
 const addContact = async (req, res, next) => {
@@ -58,9 +55,9 @@ const updateContact = async (req, res, next) => {
     return res.status(400).json({ message: "missing fields" });
   }
   const savedContact = await service.updateContact(contactId, req.body);
-  if (contactId)
-    res.status(200).json({ updated: await service.getContactById(contactId) });
-  if (!contactId) res.status(404).json({ message: "Not found" });
+  return contactId
+    ? res.status(200).json({ updated: await service.getContactById(contactId) })
+    : res.status(404).json({ message: "Not found" });
 };
 
 const changeFavorite = async (req, res, next) => {
@@ -77,10 +74,9 @@ const changeFavorite = async (req, res, next) => {
   const savedContact = await updateStatusContact(contactId, req.body);
 
   if (favorite) {
-    if (updatedContact)
-      return res.status(200).json({ updated: await getContactById(contactId) });
-    if (updatedContact === null)
-      return res.status(404).json({ message: "id not found" });
+    return updatedContact
+      ? res.status(200).json({ updated: await getContactById(contactId) })
+      : res.status(404).json({ message: "id not found" });
   }
 };
 
