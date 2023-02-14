@@ -8,6 +8,8 @@ const { User } = require("./../service/schemas/user.js");
 const { JWT_SECRET } = require("./../config");
 const { editAvatar } = require("./../utils/editAvatar.js");
 const { avatarDir } = require("./../middleware/files");
+const { v4: uuidv4 } = require("uuid");
+const { sendMail } = require("../utils/verifyMail");
 
 const getAll = async (req, res, next) => {
   try {
@@ -22,6 +24,7 @@ const getAll = async (req, res, next) => {
 const register = async (req, res, next) => {
   const { email, password } = req.body;
   const user = await service.getUser({ email });
+  const verToken = uuidv4();
 
   if (user) {
     return res.status(409).json({ message: "Email in use" });
@@ -29,9 +32,10 @@ const register = async (req, res, next) => {
 
   try {
     const avatarURL = gravatar.url(email, { s: "250", d: "mp" });
-    const newUser = new User({ email, avatarURL });
+    const newUser = new User({ email, avatarURL, verificationToken: verToken });
     newUser.setPassword(password);
     await newUser.save();
+    await sendMail(email, verToken);
     res.status(201).json({
       user: {
         email,
@@ -51,6 +55,10 @@ const login = async (req, res, next) => {
     if (!user || !user.validPassword(password)) {
       return res.status(401).json({ message: "Email or password is wrong" });
     }
+    if (!user.verify)
+      return res.status(401).json({
+        message: "User is not verified, please click verification link",
+      });
 
     const payload = {
       id: user.id,
@@ -112,4 +120,48 @@ const newAvatar = async (req, res, next) => {
   }
 };
 
-module.exports = { register, getAll, login, logout, current, newAvatar };
+const verificationLink = async (req, res, next) => {
+  try {
+    const { verificationToken } = req.params;
+    const user = await service.getUser({ verificationToken });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    await User.findByIdAndUpdate(
+      user.id,
+      { verify: true, verificationToken: null },
+      { new: true }
+    );
+    res.status(200).json({ message: "Verification successful" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const repeatVerification = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email)
+      return res.status(400).json({ message: "missing required field email" });
+    const user = await service.getUser({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (user.verify)
+      return res
+        .status(400)
+        .json({ message: "Verification has already been passed" });
+
+    await sendMail(email, user.verificationToken);
+    res.status(200).json({ message: "Verification email sent" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = {
+  register,
+  getAll,
+  login,
+  logout,
+  current,
+  newAvatar,
+  verificationLink,
+  repeatVerification,
+};
